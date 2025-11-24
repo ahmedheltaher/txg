@@ -1,0 +1,70 @@
+# ───────────────────────────────
+# Node
+# ───────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+pnpm-lock.yaml
+bun.lockb
+
+# ───────────────────────────────
+# Environment files
+# ───────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ───────────────────────────────
+# TypeScript
+# ───────────────────────────────
+dist/
+build/
+*.tsbuildinfo
+
+# ───────────────────────────────
+# Jest
+# ───────────────────────────────
+coverage/
+.jest/
+jest-cache/
+jest-results.json
+
+# ───────────────────────────────
+# Logs
+# ───────────────────────────────
+logs/
+*.log
+*.log.*
+debug.log
+
+# ───────────────────────────────
+# OS files
+# ───────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ───────────────────────────────
+# Editor files
+# ───────────────────────────────
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# JetBrains
+.idea/
+
+# Vim
+*.swp
+*.swo

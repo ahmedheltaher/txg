@@ -1,0 +1,26 @@
+{
+	"name": "@txg/shared-contracts",
+	"version": "1.0.0",
+	"description": "Shared event contracts for TXG microservices",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"scripts": {
+		"build": "tsc",
+		"test": "jest",
+		"clean": "rm -rf dist"
+	},
+	"keywords": [
+		"events",
+		"contracts",
+		"microservices"
+	],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/jest": "^29.5.14",
+		"@types/node": "^18.0.0",
+		"jest": "^29.5.0",
+		"ts-jest": "^29.1.0",
+		"typescript": "^5.0.0"
+	}
+}

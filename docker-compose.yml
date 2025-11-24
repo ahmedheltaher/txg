@@ -1,0 +1,140 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  transaction-db:
+    image: postgres:15-alpine
+    container_name: transaction-db
+    environment:
+      POSTGRES_USER: txuser
+      POSTGRES_PASSWORD: txpassword
+      POSTGRES_DB: transactions
+    ports:
+      - "5432:5432"
+    volumes:
+      - transaction-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U txuser -d transactions || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  audit-db:
+    image: postgres:15-alpine
+    container_name: audit-db
+    environment:
+      POSTGRES_USER: audituser
+      POSTGRES_PASSWORD: auditpassword
+      POSTGRES_DB: audit
+    ports:
+      - "5433:5432"
+    volumes:
+      - audit-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U audituser -d audit || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+  transaction-service:
+    build:
+      context: .
+      dockerfile: transaction-service/Dockerfile
+    container_name: transaction-service
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://txuser:txpassword@transaction-db:5432/transactions
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRES_IN: 24h
+      OUTBOX_BATCH_SIZE: 10
+      OUTBOX_POLL_INTERVAL_MS: 1000
+    ports:
+      - "3000:3000"
+    depends_on:
+      transaction-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: audit-service/Dockerfile
+    container_name: audit-service
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://audituser:auditpassword@audit-db:5432/audit
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "3001:3001"
+    depends_on:
+      audit-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_TRANSACTION_API_URL=http://localhost:3000
+        - VITE_AUDIT_API_URL=http://localhost:3001
+        - VITE_APP_ENV=production
+    container_name: txg-frontend
+    environment:
+      VITE_TRANSACTION_API_URL: http://localhost:3000
+      VITE_AUDIT_API_URL: http://localhost:3001
+      VITE_APP_ENV: production
+    ports:
+      - "8080:8080"
+    depends_on:
+      - transaction-service
+      - audit-service
+    restart: on-failure:5
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+
+volumes:
+  transaction-db-data:
+  audit-db-data:
+  rabbitmq-data:
